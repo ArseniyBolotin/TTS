@@ -5,6 +5,9 @@ from torch.nn.utils.rnn import pad_sequence
 
 
 class PositionalEncoding(nn.Module):
+    """
+    https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model
+    """
     def __init__(self, d_model: int, dropout: float = 0., max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
@@ -94,7 +97,7 @@ class DurationPredictor(nn.Module):
     def forward(self, X):
         X = self.activation1(self.conv1(X.transpose(-2, -1)).transpose(-2, -1))
         X = self.activation2(self.conv2(X.transpose(-2, -1)).transpose(-2, -1))
-        return self.linear(X).squeeze(-1)
+        return torch.exp(self.linear(X).squeeze(-1))
 
 
 class LengthRegulator(nn.Module):
@@ -106,8 +109,10 @@ class LengthRegulator(nn.Module):
     def forward(self, X, true_durations):
         batch_size = X.shape[0]
         durations = self.duration_predictor(X)
-        round_durations = torch.round(true_durations * self.alpha).int()
-
+        if self.training:
+            round_durations = torch.round(true_durations * self.alpha).int()
+        else:
+            round_durations = torch.round(durations * self.alpha).int()
         regularized = []
         for index in range(batch_size):
             regularized.append(torch.repeat_interleave(X[index], round_durations[index], dim=0))
