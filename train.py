@@ -113,18 +113,19 @@ if __name__ == '__main__':
                 print("Too short duration predicts")
             finally:
                 fast_speech.train()
-        if current_iter % save_step == 0 and google_drive:
-            print("Iteration : ", current_iter)
+        if current_iter % save_step == 0:
             model_name = 'fast_speech_' + str(current_iter) + '.pt'
             torch.save(fast_speech, model_name)
-            drive_service = build('drive', 'v3')
-            file_metadata = {'name': model_name}
-            media = MediaFileUpload(model_name, resumable=True)
-            created = drive_service.files().create(body=file_metadata,
-                                                   media_body=media,
-                                                   fields='id').execute()
-            print("Save model")
-            print('File ID: {}'.format(created.get('id')))
+            if google_drive:
+                drive_service = build('drive', 'v3')
+                file_metadata = {'name': model_name}
+                media = MediaFileUpload(model_name, resumable=True)
+                created = drive_service.files().create(body=file_metadata,
+                                                       media_body=media,
+                                                       fields='id').execute()
+                print("Iteration : ", current_iter)
+                print("Save model")
+                print('File ID: {}'.format(created.get('id')))
 
         current_iter += 1
         if current_iter > n_iters:
