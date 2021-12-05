@@ -24,7 +24,7 @@ def inf_loop(data_loader):
 if __name__ == '__main__':
     # Google drive saving
     # --------------------------------------------------------------
-    google_drive = False
+    google_drive = True
     if google_drive:
         from pydrive.auth import GoogleAuth
         from pydrive.drive import GoogleDrive
@@ -75,10 +75,10 @@ if __name__ == '__main__':
         waveform = batch.waveform
         mels = featurizer(waveform).to(device)
         tokens = batch.tokens.to(device)
-        mels_size = mels.size(-1) - (mels == featurizer.config.pad_value)[:, 0, :].sum(dim=-1)
+        mels_size = (mels.size(-1) - (mels == featurizer.config.pad_value)[:, 0, :].sum(dim=-1))
         batch.durations = aligner(
             batch.waveform.to(device), batch.waveform_length, batch.transcript
-        ) * mels_size.unsqueeze(-1)
+        ).to(device) * mels_size.unsqueeze(-1)
         durations = batch.durations.to(device)
         mels = mels.transpose(1, 2)
         preds, duration_preds = fast_speech(tokens, durations)
