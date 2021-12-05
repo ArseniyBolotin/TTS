@@ -38,7 +38,10 @@ if __name__ == '__main__':
         drive = GoogleDrive(gauth)
     # --------------------------------------------------------------
 
-    fast_speech = FastSpeech().to(device)
+    try:
+        fast_speech = torch.load("./resume.pt")
+    except:
+        fast_speech = FastSpeech().to(device)
     dataloader = DataLoader(LJSpeechDataset('./data/dataset/LJSpeech'), batch_size=32, collate_fn=LJSpeechCollator())
     aligner = GraphemeAligner().to(device)
     wandb_writer = WandbWriter()
