@@ -56,7 +56,7 @@ if __name__ == '__main__':
     criterion = nn.MSELoss()
     durations_criterion = nn.MSELoss()
 
-    optimizer = optim.Adam(fast_speech.parameters(), lr=1./(384 ** 2), betas=(0.9, 0.98), eps=1e-9)
+    optimizer = optim.Adam(fast_speech.parameters(), lr=1./(384 ** 0.5), betas=(0.9, 0.98), eps=1e-9)
     warmup_steps = 4000
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer,
@@ -98,15 +98,16 @@ if __name__ == '__main__':
             wandb_writer.add_scalar("Predictions loss", prediction_loss.item())
             wandb_writer.add_text("Text sample", batch.transcript[0])
             wandb_writer.add_audio("Ground truth audio", batch.waveform[0], sample_rate=22050)
+            wandb_writer.add_scalar('Learning rate', scheduler.get_last_lr()[0])
             try:
                 fast_speech.eval()
                 reconstructed_wav = vocoder.inference(fast_speech(tokens, durations)[0][:1].transpose(1, 2)).cpu()
                 wandb_writer.add_audio("Reconstructed audio", reconstructed_wav, sample_rate=22050)
                 test_wav = vocoder.inference(fast_speech(test_batch)[0].transpose(1, 2)).cpu()
                 for i, text in enumerate(test, 1):
-                    wandb_writer.add_text("Text #" + str(i), text)
+                    wandb_writer.add_text("Test text #" + str(i), text)
                 for i, wav in enumerate(test_wav, 1):
-                    wandb_writer.add_audio("Text #" + str(i), test_wav, sample_rate=22050)
+                    wandb_writer.add_audio("Test audio #" + str(i), test_wav, sample_rate=22050)
             except RuntimeError:
                 print("Iteration : ", current_iter)
                 print("Too short duration predicts")

@@ -35,7 +35,7 @@ class WandbWriter:
             self.timer = datetime.now()
 
     def scalar_name(self, scalar_name):
-        return f"{scalar_name}_{self.mode}"
+        return f"{scalar_name}"
 
     def add_scalar(self, scalar_name, scalar):
         self.wandb.log({
