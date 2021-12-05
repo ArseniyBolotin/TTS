@@ -115,7 +115,8 @@ class LengthRegulator(nn.Module):
             round_durations = torch.round(durations * self.alpha).int()
         regularized = []
         for index in range(batch_size):
-            regularized.append(torch.repeat_interleave(X[index], round_durations[index], dim=0))
+            length = min(X[index].shape[0], round_durations[index].shape[0])
+            regularized.append(torch.repeat_interleave(X[index, :length], round_durations[index, :length], dim=0))
         result = pad_sequence(regularized, batch_first=True)
         return result, durations
 
