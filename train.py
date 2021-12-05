@@ -48,9 +48,9 @@ if __name__ == '__main__':
     vocoder = Vocoder().to(device).eval()
     featurizer = MelSpectrogram(MelSpectrogramConfig())
 
-    n_iters = 2000
-    save_step = 1000
-    output_step = 10
+    n_iters = 40000
+    save_step = 5000
+    output_step = 100
 
     fast_speech.train()
     criterion = nn.MSELoss()
