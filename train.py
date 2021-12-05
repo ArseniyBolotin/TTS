@@ -83,9 +83,10 @@ if __name__ == '__main__':
         mels = mels.transpose(1, 2)
         preds, duration_preds = fast_speech(tokens, durations)
         optimizer.zero_grad()
-        common_shape = min(preds.size(1), mels.size(1))
-        durations_loss = durations_criterion(duration_preds, durations)
-        prediction_loss = criterion(preds[:, :common_shape, :], mels[:, :common_shape, :])
+        preds_common_shape = min(preds.size(1), mels.size(1))
+        prediction_loss = criterion(preds[:, :preds_common_shape, :], mels[:, :preds_common_shape, :])
+        durations_common_shape = min(duration_preds.size(1), durations.size(1))
+        durations_loss = durations_criterion(duration_preds[:, durations_common_shape], durations[:, durations_common_shape])
         loss = prediction_loss + durations_loss
         loss.backward()
         optimizer.step()
