@@ -1,4 +1,4 @@
-from itertools import islice
+from itertools import cycle
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,39 +9,61 @@ from collate import LJSpeechCollator
 from dataset import LJSpeechDataset
 from featurizer import MelSpectrogram, MelSpectrogramConfig
 from model import FastSpeech
+from vocoder import Vocoder
+from wandb_writer import WandbWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 fast_speech = FastSpeech().to(device)
-
 dataloader = DataLoader(LJSpeechDataset('./data/dataset/LJSpeech'), batch_size=3, collate_fn=LJSpeechCollator())
-batch = list(islice(dataloader, 1))[0]
 aligner = GraphemeAligner().to(device)
-batch.durations = aligner(
-    batch.waveform.to(device), batch.waveform_length, batch.transcript
-)
+wandb_writer = WandbWriter()
+vocoder = Vocoder().to(device).eval()
 featurizer = MelSpectrogram(MelSpectrogramConfig())
-waveform = batch.waveform
-mels = featurizer(waveform).to(device)
-tokens = batch.tokens.to(device)
-durations = batch.durations.to(device) * mels.shape[-1]
-mels = mels.transpose(1, 2)
-n_epochs = 2000
-output_step = 100
+
+n_iters = 2000
+output_step = 10
 
 fast_speech.train()
-preds_loss = nn.MSELoss()
+criterion = nn.MSELoss()
 durations_criterion = nn.MSELoss()
 
 optimizer = optim.Adam(fast_speech.parameters(), lr=3e-4, betas=(0.9, 0.98), eps=1e-9)
 
-for epoch in range(1, n_epochs + 1):
+current_iter = 1
+
+for batch in cycle(dataloader):
+    waveform = batch.waveform
+    mels = featurizer(waveform).to(device)
+    tokens = batch.tokens.to(device)
+    batch.durations = aligner(
+        batch.waveform.to(device), batch.waveform_length, batch.transcript
+    )[:, :tokens.shape[-1]]
+    durations = batch.durations.to(device) * tokens.shape[-1]
+    mels = mels.transpose(1, 2)
     preds, duration_preds = fast_speech(tokens, durations)
     optimizer.zero_grad()
     common_shape = min(preds.size(1), mels.size(1))
     durations_loss = durations_criterion(duration_preds, durations)
-    loss = preds_loss(preds[:, :common_shape, :], mels[:, :common_shape, :]) + durations_loss
+    prediction_loss = criterion(preds[:, :common_shape, :], mels[:, :common_shape, :])
+    loss = prediction_loss + durations_loss
     loss.backward()
     optimizer.step()
-    if epoch % output_step == 0:
-        print(f"Epoch #{epoch} loss: {loss.item()}")
-        print(f"durations loss: {durations_loss.item()}")
+    if current_iter % output_step == 0:
+        wandb_writer.set_step(current_iter)
+        wandb_writer.add_scalar("Total loss", loss.item())
+        wandb_writer.add_scalar("Durations predictions loss", durations_loss.item())
+        wandb_writer.add_scalar("Predictions loss", prediction_loss.item())
+        wandb_writer.add_text("Text sample", batch.transcript[0])
+        wandb_writer.add_audio("Ground truth audio", batch.waveform[0], sample_rate=22050)
+        try:
+            fast_speech.eval()
+            reconstructed_wav = vocoder.inference(fast_speech(tokens, durations)[0][:1].transpose(1, 2)).cpu()
+            wandb_writer.add_audio("Reconstructed audio", reconstructed_wav, sample_rate=22050)
+        except RuntimeError:
+            print("Iteration : ", current_iter)
+            print("Too short duration predicts")
+        finally:
+            fast_speech.train()
+    current_iter += 1
+    if current_iter > n_iters:
+        break

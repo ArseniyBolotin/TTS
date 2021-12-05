@@ -9,7 +9,7 @@ class Vocoder(nn.Module):
         super(Vocoder, self).__init__()
 
         sys.path.append('waveglow/')
-        model = torch.load('waveglow_256channels_universal_v5.pt', map_location='cpu')[
+        model = torch.load('./data/waveglow_256channels_universal_v5.pt', map_location='cpu')[
             'model']
         self.net = model.remove_weightnorm(model)
 
