@@ -8,7 +8,7 @@ class PositionalEncoding(nn.Module):
     """
     https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model
     """
-    def __init__(self, d_model: int, dropout: float = 0., max_len: int = 5000):
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
         position = torch.arange(max_len).unsqueeze(1)
@@ -84,13 +84,13 @@ class DurationPredictor(nn.Module):
         self.activation1 = nn.Sequential(
             nn.ReLU(),
             nn.LayerNorm(normalized_shape=384),
-            nn.Dropout(0.)
+            nn.Dropout(0.1)
         )
         self.conv2 = nn.Conv1d(in_channels=384, out_channels=384, kernel_size=3, padding='same')
         self.activation2 = nn.Sequential(
             nn.ReLU(),
             nn.LayerNorm(normalized_shape=384),
-            nn.Dropout(0.)
+            nn.Dropout(0.1)
         )
         self.linear = nn.Linear(384, 1)
 
@@ -130,7 +130,7 @@ class FastSpeech(nn.Module):
         self.FFT2 = nn.Sequential(*[FFTBlock() for _ in range(6)])
         self.linear = nn.Linear(384, 80)
 
-    def forward(self, X, durations):
+    def forward(self, X, durations=None):
         embedding = self.positional_encoding(self.phoneme_embedding(X))
         embedding = self.FFT1(embedding)
         fft1_reg, predicted_durations = self.length_regulator(embedding, durations)
