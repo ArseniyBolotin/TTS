@@ -13,6 +13,23 @@ from vocoder import Vocoder
 from wandb_writer import WandbWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# Google drive saving
+# --------------------------------------------------------------
+google_drive = False
+if google_drive:
+    from pydrive.auth import GoogleAuth
+    from pydrive.drive import GoogleDrive
+    from google.colab import auth
+    from oauth2client.client import GoogleCredentials
+    from googleapiclient.http import MediaFileUpload
+    from googleapiclient.discovery import build
+    auth.authenticate_user()
+    gauth = GoogleAuth()
+    gauth.credentials = GoogleCredentials.get_application_default()
+    drive = GoogleDrive(gauth)
+# --------------------------------------------------------------
+
+
 fast_speech = FastSpeech().to(device)
 dataloader = DataLoader(LJSpeechDataset('./data/dataset/LJSpeech'), batch_size=3, collate_fn=LJSpeechCollator())
 aligner = GraphemeAligner().to(device)
@@ -20,7 +37,8 @@ wandb_writer = WandbWriter()
 vocoder = Vocoder().to(device).eval()
 featurizer = MelSpectrogram(MelSpectrogramConfig())
 
-n_iters = 2000
+n_iters = 20000
+save_step = 1000
 output_step = 10
 
 fast_speech.train()
@@ -64,6 +82,19 @@ for batch in cycle(dataloader):
             print("Too short duration predicts")
         finally:
             fast_speech.train()
+    if current_iter % save_step == 0 and google_drive:
+        print("Iteration : ", current_iter)
+        name = 'fast_speech_' + str(current_iter) + '.pt'
+        torch.save(fast_speech, name)
+        drive_service = build('drive', 'v3')
+        file_metadata = {'name': name}
+        media = MediaFileUpload(name, resumable=True)
+        created = drive_service.files().create(body=file_metadata,
+                                               media_body=media,
+                                               fields='id').execute()
+        print("Save model")
+        print('File ID: {}'.format(created.get('id')))
+
     current_iter += 1
     if current_iter > n_iters:
         break
