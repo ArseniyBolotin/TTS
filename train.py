@@ -49,8 +49,8 @@ if __name__ == '__main__':
     featurizer = MelSpectrogram(MelSpectrogramConfig())
 
     n_iters = 40000
-    save_step = 5000
-    output_step = 100
+    save_step = 4000
+    output_step = 10
 
     fast_speech.train()
     criterion = nn.MSELoss()
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         preds_common_shape = min(preds.size(1), mels.size(1))
         prediction_loss = criterion(preds[:, :preds_common_shape, :], mels[:, :preds_common_shape, :])
         durations_common_shape = min(duration_preds.size(1), durations.size(1))
-        durations_loss = durations_criterion(duration_preds[:, durations_common_shape], durations[:, durations_common_shape])
+        durations_loss = durations_criterion(duration_preds[:, :durations_common_shape], durations[:, :durations_common_shape])
         loss = prediction_loss + durations_loss
         loss.backward()
         optimizer.step()
@@ -103,8 +103,10 @@ if __name__ == '__main__':
                 reconstructed_wav = vocoder.inference(fast_speech(tokens, durations)[0][:1].transpose(1, 2)).cpu()
                 wandb_writer.add_audio("Reconstructed audio", reconstructed_wav, sample_rate=22050)
                 test_wav = vocoder.inference(fast_speech(test_batch)[0].transpose(1, 2)).cpu()
-                for text, wav in zip(test, test_wav):
-                    wandb_writer.add_audio(test, test_wav)
+                for i, text in enumerate(test, 1):
+                    wandb_writer.add_text("Text #" + str(i), text)
+                for i, wav in enumerate(test_wav, 1):
+                    wandb_writer.add_audio("Text #" + str(i), test_wav, sample_rate=22050)
             except RuntimeError:
                 print("Iteration : ", current_iter)
                 print("Too short duration predicts")
