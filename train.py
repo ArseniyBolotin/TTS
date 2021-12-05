@@ -60,7 +60,7 @@ if __name__ == '__main__':
     warmup_steps = 4000
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda step: min(step ** (-0.5), step * (warmup_steps ** (-1.5)))
+        lr_lambda=lambda step: min((step + 1) ** (-0.5), (step + 1) * (warmup_steps ** (-1.5)))
     )
     current_iter = 1
 
