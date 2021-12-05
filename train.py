@@ -89,6 +89,7 @@ if __name__ == '__main__':
         loss = prediction_loss + durations_loss
         loss.backward()
         optimizer.step()
+        scheduler.step()
         if current_iter % output_step == 0:
             wandb_writer.set_step(current_iter)
             wandb_writer.add_scalar("Total loss", loss.item())
