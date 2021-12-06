@@ -24,7 +24,7 @@ def inf_loop(data_loader):
 if __name__ == '__main__':
     # Google drive saving
     # --------------------------------------------------------------
-    google_drive = True
+    google_drive = False
     if google_drive:
         from pydrive.auth import GoogleAuth
         from pydrive.drive import GoogleDrive
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     vocoder = Vocoder().to(device).eval()
     featurizer = MelSpectrogram(MelSpectrogramConfig())
 
-    n_iters = 40000
+    n_iters = 20000
     save_step = 4000
     output_step = 10
 
