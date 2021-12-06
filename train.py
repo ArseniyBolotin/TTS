@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 for i, text in enumerate(test, 1):
                     wandb_writer.add_text("Test text #" + str(i), text)
                 for i, wav in enumerate(test_wav, 1):
-                    wandb_writer.add_audio("Test audio #" + str(i), test_wav, sample_rate=22050)
+                    wandb_writer.add_audio("Test audio #" + str(i), wav, sample_rate=22050)
             except RuntimeError:
                 print("Iteration : ", current_iter)
                 print("Too short duration predicts")
